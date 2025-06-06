@@ -2701,21 +2701,54 @@ function redzlib:MakeWindow(Configs)
 	return Window
 end
 
-function dropdown:SetOptions(newOptions)
-    -- Limpa as opções visuais antigas
-    for _, btn in pairs(self.OptionButtons) do
-        btn:Destroy()
-    end
-    self.OptionButtons = {}
+local RedzHub = _G.RedzHubUI -- Ou como você acessa a lib no seu script
 
-    -- Atualiza a tabela de opções
-    self.Options = newOptions
+-- Salvar a função original AddDropdown
+local oldAddDropdown = RedzHub.Tab.AddDropdown
 
-    -- Recria os botões das opções no dropdown
-    for i, option in ipairs(newOptions) do
-        -- criar botão visual para cada opção
-        -- e conectar callback para alterar valor selecionado
+-- Sobrescrever AddDropdown
+function RedzHub.Tab:AddDropdown(data)
+    local dropdown = oldAddDropdown(self, data)
+
+    -- Adicionar método SetOptions no dropdown criado
+    function dropdown:SetOptions(newOptions)
+        if self.OptionButtons then
+            for _, btn in ipairs(self.OptionButtons) do
+                btn:Destroy()
+            end
+        end
+        self.OptionButtons = {}
+
+        self.Options = newOptions or {}
+
+        for i, option in ipairs(self.Options) do
+            local Button = Instance.new("TextButton")
+            Button.Size = UDim2.new(1, 0, 0, 25)
+            Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            Button.BorderSizePixel = 0
+            Button.Text = option
+            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Button.Parent = self.OptionsFrame
+
+            Button.MouseButton1Click:Connect(function()
+                self.Selected = option
+                self.Button.Text = option
+                if self.Callback then
+                    self.Callback(option)
+                end
+                self:CloseOptions()
+            end)
+
+            table.insert(self.OptionButtons, Button)
+        end
     end
+
+    -- Inicializar lista de botões
+    dropdown.OptionButtons = {}
+    dropdown.Options = data.Options or {}
+    dropdown:SetOptions(dropdown.Options)
+
+    return dropdown
 end
 
 return redzlib
